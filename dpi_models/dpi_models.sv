@@ -21,6 +21,8 @@ interface QSPI_CS  ();
 
 endinterface
 
+
+
 interface QSPI ();
 
   logic sck;
@@ -36,33 +38,99 @@ interface QSPI ();
 endinterface
 
 
+
+interface JTAG ();
+
+  logic tck;
+  logic tdi;
+  logic tdo;
+  logic tms;
+  logic trst;
+
+endinterface
+
+
+
+interface CTRL ();
+
+  logic reset;
+
+endinterface
+
+
+
 package dpi_models;
 
-  virtual QSPI    qspim_itf[];
+  virtual JTAG    jtag_itf_array[];
+  int             nb_jtag_itf = 0;
+
+  virtual CTRL    ctrl_itf_array[];
+  int             nb_ctrl_itf = 0;
+
+  virtual QSPI    qspim_itf_array[];
   int             nb_qspim_itf = 0;
 
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
   import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context function chandle dpi_jtag_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context function chandle dpi_ctrl_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context task dpi_start_task(chandle arg1, chandle arg2);
 
   import "DPI-C"   context function chandle dpi_model_load(chandle comp_config);
+  import "DPI-C"   context task dpi_model_start(chandle model);
 
+  export "DPI-C"   task             dpi_create_task;
   export "DPI-C"   function         dpi_print;
+  export "DPI-C"   function         dpi_jtag_tck_edge;
+  export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
+  export "DPI-C"   task             dpi_wait;
+  export "DPI-C"   task             dpi_wait_ps;
 
-  //export "DPI-C"   function         sv_qspim_set_output;
+  task dpi_wait(input longint t);
+    #(t * 1ns);
+  endtask
+
+  task dpi_wait_ps(input longint t);
+    #(t * 1ps);
+  endtask
 
   function void dpi_print(chandle handle, input string msg);
     $display("[TB] %t - %s", $realtime, msg);
   endfunction : dpi_print
 
+
+  function void dpi_jtag_tck_edge(int handle, int tck, int tdi, int tms, int trst, output int tdo);
+    automatic virtual JTAG itf = jtag_itf_array[handle];
+    itf.tck = tck;
+    itf.tdi = tdi;
+    itf.tms = tms;
+    itf.trst = trst;
+    tdo = itf.tdo;
+  endfunction : dpi_jtag_tck_edge
+
+
+  function void dpi_ctrl_reset_edge(int handle, int reset);
+    automatic virtual CTRL itf = ctrl_itf_array[handle];
+    itf.reset = reset;
+  endfunction : dpi_ctrl_reset_edge
+
+
   function void dpi_qspim_set_data(int handle, int data_0, int data_1, int data_2, int data_3);
-    automatic virtual QSPI itf = qspim_itf[handle];
+    automatic virtual QSPI itf = qspim_itf_array[handle];
     itf.data_0_out = data_0;
     itf.data_1_out = data_1;
     itf.data_2_out = data_2;
     itf.data_3_out = data_3;
   endfunction : dpi_qspim_set_data
+
+
+  task dpi_create_task(chandle arg1, chandle arg2);
+    fork
+      dpi_start_task(arg1, arg2);
+    join_none
+  endtask
 
   class periph_wrapper #(int NB_SPIS_CHANNELS = 0);
 
@@ -73,8 +141,38 @@ package dpi_models;
     function int load_model(chandle comp_config);
       dpi_model = dpi_model_load(comp_config);
       if (dpi_model == null) return -1;
-      else return 0;
+      return 0;
     endfunction
+
+    task start_model();
+      dpi_model_start(dpi_model);
+    endtask
+
+
+    task jtag_bind(string name, virtual JTAG jtag_itf);
+      jtag_itf.tck = 'b1;
+      jtag_itf.tdi = 'b1;
+      jtag_itf.tms = 'b1;
+      jtag_itf.trst = 'b1;
+
+      nb_jtag_itf = nb_jtag_itf + 1;
+      jtag_itf_array = new[nb_jtag_itf](jtag_itf_array);
+      jtag_itf_array[nb_jtag_itf - 1] = jtag_itf;
+
+      dpi_jtag_bind(dpi_model, name, nb_jtag_itf - 1);
+    endtask
+
+
+    task ctrl_bind(string name, virtual CTRL ctrl_itf);
+      ctrl_itf.reset = 'b1;
+
+      nb_ctrl_itf = nb_ctrl_itf + 1;
+      ctrl_itf_array = new[nb_ctrl_itf](ctrl_itf_array);
+      ctrl_itf_array[nb_ctrl_itf - 1] = ctrl_itf;
+
+      dpi_ctrl_bind(dpi_model, name, nb_ctrl_itf - 1);
+    endtask
+
 
     task qpim_bind(string name, virtual QSPI qspi_itf, virtual QSPI_CS qspi_cs_itf);
 
@@ -86,12 +184,10 @@ package dpi_models;
       qspi_itf.data_3_out = 'bz;
 
       nb_qspim_itf = nb_qspim_itf + 1;
-      qspim_itf = new[nb_qspim_itf](qspim_itf);
-      qspim_itf[nb_qspim_itf - 1] = qspi_itf;
+      qspim_itf_array = new[nb_qspim_itf](qspim_itf_array);
+      qspim_itf_array[nb_qspim_itf - 1] = qspi_itf;
 
       dpi_handle = dpi_qspim_bind(dpi_model, name, nb_qspim_itf - 1);
-
-      //handle = chandle'(qspi_itf);
 
       this.qspi_itf = qspi_itf;
       this.qspi_cs_itf = qspi_cs_itf;
@@ -127,41 +223,4 @@ package dpi_models;
 
   endclass
 
-  function void sv_qspim_set_output(input chandle handle, input logic data_0, input logic data_1, input logic data_2, input logic data_3);
-    virtual QSPI itf;
-    $cast(itf, handle);
-    itf.data_0_out = data_0;
-    itf.data_1_out = data_1;
-    itf.data_2_out = data_2;
-    itf.data_3_out = data_3;
-  endfunction
-
 endpackage
-
-
-
-
-//module dev_dpi2
-//  #(
-//    parameter N_QSPIS_CHANNELS = 0
-//  )
-//  (
-//     QSPI qspis[0:N_QSPIS_CHANNELS-1]
-//  );
-//
-//  initial
-//  begin
-//
-//  end
-//
-//  generate
-//  begin
-//    for (genvar i=0; i<N_QSPIS_CHANNELS; i++)
-//    begin
-//      always @(posedge qspis[i].sck)
-//      begin
-//      end
-//    end
-//  end
-//
-//endmodule

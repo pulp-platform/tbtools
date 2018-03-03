@@ -33,10 +33,21 @@ package tb_driver;
     virtual QSPI_CS cs[];
   } qspi_info_t;
 
+  typedef struct { 
+    virtual JTAG itf;
+  } jtag_info_t;
+
+  typedef struct { 
+    virtual CTRL itf;
+  } ctrl_info_t;
+
   class tb_driver;
 
     chandle config_handle;
+
     qspi_info_t qspi_infos[];
+    jtag_info_t jtag_infos[];
+    ctrl_info_t ctrl_infos[];
 
     function register_qspim_itf(int itf_id, virtual QSPI itf, virtual QSPI_CS cs[]);
       qspi_infos = new[itf_id+1] (qspi_infos);
@@ -45,23 +56,25 @@ package tb_driver;
       //qspi_infos[itf_id].cs = new[cs.size] (cs);
     endfunction
 
+    function register_jtag_itf(int itf_id, virtual JTAG itf);
+      jtag_infos = new[itf_id+1] (jtag_infos);
+      jtag_infos[itf_id].itf = itf;
+    endfunction
+
+    function register_ctrl_itf(int itf_id, virtual CTRL itf);
+      ctrl_infos = new[itf_id+1] (ctrl_infos);
+      ctrl_infos[itf_id].itf = itf;
+    endfunction
+
     task build_from_json(string path);
 
-      chandle uart;
-      int baudrate;
       int nb_comp;
       chandle driver_handle;
 
       config_handle = dpi_config_get_from_file(path);
 
-      uart = dpi_config_get_config(config_handle, "**/uart_loopback/baudrate");
-      baudrate = dpi_config_get_int(uart);
-
       driver_handle = dpi_driver_set_config(config_handle);
       nb_comp = dpi_driver_get_nb_comp(driver_handle);
-
-      $display("[TB] %t - Baudrate: %d", $realtime, baudrate);
-      $display("[TB] %t - NB COMP: %d", $realtime, nb_comp);
 
       for(int i = 0; i < nb_comp; i++) begin
         string comp_name = dpi_driver_get_comp_name(driver_handle, i);
@@ -80,6 +93,8 @@ package tb_driver;
           err = i_comp.load_model(comp_config);
           if (err != 0) $fatal(1, "[TB] %t - Failed to instantiate periph model", $realtime);
 
+          i_comp.start_model();
+
           for(int j = 0; j < nb_itf; j++) begin
             string itf_type;
             string itf_name;
@@ -90,6 +105,12 @@ package tb_driver;
 
             if (itf_type == "QSPIM") begin
                 i_comp.qpim_bind(itf_name, qspi_infos[itf_id].itf, qspi_infos[itf_id].cs[itf_sub_id]);
+
+            end else if (itf_type == "JTAG") begin
+                i_comp.jtag_bind(itf_name, jtag_infos[itf_id].itf);
+
+            end else if (itf_type == "CTRL") begin
+                i_comp.ctrl_bind(itf_name, ctrl_infos[itf_id].itf);
 
             end
 
