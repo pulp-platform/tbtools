@@ -77,7 +77,7 @@ package dpi_models;
   import "DPI-C"   context function chandle dpi_ctrl_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context task dpi_start_task(chandle arg1, chandle arg2);
 
-  import "DPI-C"   context function chandle dpi_model_load(chandle comp_config);
+  import "DPI-C"   context function chandle dpi_model_load(chandle comp_config, chandle handle);
   import "DPI-C"   context task dpi_model_start(chandle model);
 
   export "DPI-C"   task             dpi_create_task;
@@ -87,13 +87,22 @@ package dpi_models;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   task             dpi_wait;
   export "DPI-C"   task             dpi_wait_ps;
+  export "DPI-C"   task             dpi_wait_event;
+  export "DPI-C"   task             dpi_raise_event;
 
-  task dpi_wait(input longint t);
+  task dpi_wait(chandle handle, input longint t);
     #(t * 1ns);
   endtask
 
-  task dpi_wait_ps(input longint t);
+  task dpi_wait_ps(chandle handle, input longint t);
     #(t * 1ps);
+  endtask
+
+  task dpi_wait_event(chandle handle);
+    #(50 * 1ns);
+  endtask
+
+  task dpi_raise_event(chandle handle);
   endtask
 
   function void dpi_print(chandle handle, input string msg);
@@ -126,7 +135,7 @@ package dpi_models;
   endfunction : dpi_qspim_set_data
 
 
-  task dpi_create_task(chandle arg1, chandle arg2);
+  task dpi_create_task(chandle handle, chandle arg1, chandle arg2);
     fork
       dpi_start_task(arg1, arg2);
     join_none
@@ -139,7 +148,7 @@ package dpi_models;
     chandle dpi_model;
 
     function int load_model(chandle comp_config);
-      dpi_model = dpi_model_load(comp_config);
+      dpi_model = dpi_model_load(comp_config, null);
       if (dpi_model == null) return -1;
       return 0;
     endfunction
