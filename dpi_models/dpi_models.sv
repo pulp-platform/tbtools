@@ -82,6 +82,7 @@ package dpi_models;
 
   export "DPI-C"   task             dpi_create_task;
   export "DPI-C"   function         dpi_print;
+  export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
@@ -108,6 +109,10 @@ package dpi_models;
   function void dpi_print(chandle handle, input string msg);
     $display("[TB] %t - %s", $realtime, msg);
   endfunction : dpi_print
+
+  function void dpi_fatal(chandle handle, input string msg);
+    $display("[TB] %t - %s", $realtime, msg);
+  endfunction : dpi_fatal
 
 
   function void dpi_jtag_tck_edge(int handle, int tck, int tdi, int tms, int trst, output int tdo);
