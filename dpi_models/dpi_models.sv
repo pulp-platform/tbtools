@@ -127,7 +127,7 @@ package dpi_models;
 
   function void dpi_ctrl_reset_edge(int handle, int reset);
     automatic virtual CTRL itf = ctrl_itf_array[handle];
-    itf.reset = reset;
+    itf.reset = !reset;
   endfunction : dpi_ctrl_reset_edge
 
 
@@ -178,6 +178,7 @@ package dpi_models;
 
 
     task ctrl_bind(string name, virtual CTRL ctrl_itf);
+      $display("[TB] %t - SETTING RESET TO 1", $realtime);
       ctrl_itf.reset = 'b1;
 
       nb_ctrl_itf = nb_ctrl_itf + 1;
