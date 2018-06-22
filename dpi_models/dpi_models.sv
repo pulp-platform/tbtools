@@ -127,7 +127,7 @@ package dpi_models;
 
   function void dpi_ctrl_reset_edge(int handle, int reset);
     automatic virtual CTRL itf = ctrl_itf_array[handle];
-    itf.reset = !reset;
+    itf.reset = reset;
   endfunction : dpi_ctrl_reset_edge
 
 
