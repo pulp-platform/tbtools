@@ -49,19 +49,19 @@ package tb_driver;
     jtag_info_t jtag_infos[];
     ctrl_info_t ctrl_infos[];
 
-    function register_qspim_itf(int itf_id, virtual QSPI itf, virtual QSPI_CS cs[]);
+    function void register_qspim_itf(int itf_id, virtual QSPI itf, virtual QSPI_CS cs[]);
       qspi_infos = new[itf_id+1] (qspi_infos);
       qspi_infos[itf_id].itf = itf;
       qspi_infos[itf_id].cs = cs;
       //qspi_infos[itf_id].cs = new[cs.size] (cs);
     endfunction
 
-    function register_jtag_itf(int itf_id, virtual JTAG itf);
+    function void register_jtag_itf(int itf_id, virtual JTAG itf);
       jtag_infos = new[itf_id+1] (jtag_infos);
       jtag_infos[itf_id].itf = itf;
     endfunction
 
-    function register_ctrl_itf(int itf_id, virtual CTRL itf);
+    function void register_ctrl_itf(int itf_id, virtual CTRL itf);
       ctrl_infos = new[itf_id+1] (ctrl_infos);
       ctrl_infos[itf_id].itf = itf;
     endfunction
