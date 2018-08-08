@@ -38,6 +38,10 @@ package tb_driver;
   } jtag_info_t;
 
   typedef struct { 
+    virtual UART itf;
+  } uart_info_t;
+
+  typedef struct { 
     virtual CTRL itf;
   } ctrl_info_t;
 
@@ -47,6 +51,7 @@ package tb_driver;
 
     qspi_info_t qspi_infos[];
     jtag_info_t jtag_infos[];
+    uart_info_t uart_infos[];
     ctrl_info_t ctrl_infos[];
 
     function register_qspim_itf(int itf_id, virtual QSPI itf, virtual QSPI_CS cs[]);
@@ -59,6 +64,11 @@ package tb_driver;
     function register_jtag_itf(int itf_id, virtual JTAG itf);
       jtag_infos = new[itf_id+1] (jtag_infos);
       jtag_infos[itf_id].itf = itf;
+    endfunction
+
+    function register_uart_itf(int itf_id, virtual UART itf);
+      uart_infos = new[itf_id+1] (uart_infos);
+      uart_infos[itf_id].itf = itf;
     endfunction
 
     function register_ctrl_itf(int itf_id, virtual CTRL itf);
@@ -108,6 +118,9 @@ package tb_driver;
 
             end else if (itf_type == "JTAG") begin
                 i_comp.jtag_bind(itf_name, jtag_infos[itf_id].itf);
+
+            end else if (itf_type == "UART") begin
+                i_comp.uart_bind(itf_name, uart_infos[itf_id].itf);
 
             end else if (itf_type == "CTRL") begin
                 i_comp.ctrl_bind(itf_name, ctrl_infos[itf_id].itf);

@@ -50,6 +50,14 @@ interface JTAG ();
 endinterface
 
 
+interface UART ();
+
+  logic tx;
+  logic rx;
+
+endinterface
+
+
 
 interface CTRL ();
 
@@ -64,18 +72,23 @@ package dpi_models;
   virtual JTAG    jtag_itf_array[];
   int             nb_jtag_itf = 0;
 
+  virtual UART    uart_itf_array[];
+  int             nb_uart_itf = 0;
+
   virtual CTRL    ctrl_itf_array[];
   int             nb_ctrl_itf = 0;
 
   virtual QSPI    qspim_itf_array[];
   int             nb_qspim_itf = 0;
 
+  import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
   import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_jtag_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context function chandle dpi_uart_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_ctrl_bind(chandle dpi_model, string name, int handle);
-  import "DPI-C"   context task dpi_start_task(chandle arg1, chandle arg2);
+  import "DPI-C"   context task dpi_start_task(int id);
 
   import "DPI-C"   context function chandle dpi_model_load(chandle comp_config, chandle handle);
   import "DPI-C"   context task dpi_model_start(chandle model);
@@ -125,6 +138,12 @@ package dpi_models;
   endfunction : dpi_jtag_tck_edge
 
 
+  function void dpi_uart_rx_edge(int handle, int data);
+    automatic virtual UART itf = uart_itf_array[handle];
+    itf.tx = data;
+  endfunction : dpi_uart_rx_edge
+
+
   function void dpi_ctrl_reset_edge(int handle, int reset);
     automatic virtual CTRL itf = ctrl_itf_array[handle];
     itf.reset = !reset;
@@ -140,9 +159,11 @@ package dpi_models;
   endfunction : dpi_qspim_set_data
 
 
-  task dpi_create_task(chandle handle, chandle arg1, chandle arg2);
+  task dpi_create_task(chandle handle, int id);
+    $display("[TB] %t - Starting task id %d", $realtime, id);
     fork
-      dpi_start_task(arg1, arg2);
+      automatic int my_id = id;
+      dpi_start_task(my_id);
     join_none
   endtask
 
@@ -174,6 +195,25 @@ package dpi_models;
       jtag_itf_array[nb_jtag_itf - 1] = jtag_itf;
 
       dpi_jtag_bind(dpi_model, name, nb_jtag_itf - 1);
+    endtask
+
+    task uart_bind(string name, virtual UART uart_itf);
+      chandle dpi_handle;
+
+      uart_itf.tx = 'b1;
+
+      nb_uart_itf = nb_uart_itf + 1;
+      uart_itf_array = new[nb_uart_itf](uart_itf_array);
+      uart_itf_array[nb_uart_itf - 1] = uart_itf;
+
+      dpi_handle = dpi_uart_bind(dpi_model, name, nb_uart_itf - 1);
+
+      fork
+      do begin
+        @(edge uart_itf.rx);
+        dpi_uart_edge(dpi_handle, $realtime*1000, uart_itf.rx);
+      end while(1);
+      join_none
     endtask
 
 
