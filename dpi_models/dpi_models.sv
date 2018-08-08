@@ -146,7 +146,7 @@ package dpi_models;
 
   function void dpi_ctrl_reset_edge(int handle, int reset);
     automatic virtual CTRL itf = ctrl_itf_array[handle];
-    itf.reset = !reset;
+    itf.reset = reset;
   endfunction : dpi_ctrl_reset_edge
 
 
@@ -185,6 +185,8 @@ package dpi_models;
 
 
     task jtag_bind(string name, virtual JTAG jtag_itf);
+      chandle dpi_context;
+
       jtag_itf.tck = 'b1;
       jtag_itf.tdi = 'b1;
       jtag_itf.tms = 'b1;
@@ -194,7 +196,7 @@ package dpi_models;
       jtag_itf_array = new[nb_jtag_itf](jtag_itf_array);
       jtag_itf_array[nb_jtag_itf - 1] = jtag_itf;
 
-      dpi_jtag_bind(dpi_model, name, nb_jtag_itf - 1);
+      dpi_context = dpi_jtag_bind(dpi_model, name, nb_jtag_itf - 1);
     endtask
 
     task uart_bind(string name, virtual UART uart_itf);
@@ -218,6 +220,8 @@ package dpi_models;
 
 
     task ctrl_bind(string name, virtual CTRL ctrl_itf);
+      chandle dpi_context;
+
       $display("[TB] %t - SETTING RESET TO 1", $realtime);
       ctrl_itf.reset = 'b1;
 
@@ -225,7 +229,7 @@ package dpi_models;
       ctrl_itf_array = new[nb_ctrl_itf](ctrl_itf_array);
       ctrl_itf_array[nb_ctrl_itf - 1] = ctrl_itf;
 
-      dpi_ctrl_bind(dpi_model, name, nb_ctrl_itf - 1);
+      dpi_context = dpi_ctrl_bind(dpi_model, name, nb_ctrl_itf - 1);
     endtask
 
 
