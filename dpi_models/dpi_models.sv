@@ -97,6 +97,7 @@ package dpi_models;
   export "DPI-C"   function         dpi_print;
   export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
+  export "DPI-C"   function         dpi_uart_rx_edge;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   task             dpi_wait;

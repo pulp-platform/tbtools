@@ -136,14 +136,26 @@ dpi_qspim_sck_edge(
 DPI_LINK_DECL DPI_DLLESPEC
 int
 dpi_start_task(
-    void* arg1,
-    void* arg2);
+    int id);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
+dpi_uart_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void
+dpi_uart_edge(
+    void* handle,
+    int64_t timestamp,
+    int64_t data);
 
 DPI_LINK_DECL int
 dpi_create_task(
     void* handle,
-    void* arg1,
-    void* arg2);
+    int id);
 
 DPI_LINK_DECL void
 dpi_ctrl_reset_edge(
@@ -180,6 +192,11 @@ dpi_qspim_set_data(
 DPI_LINK_DECL int
 dpi_raise_event(
     void* handle);
+
+DPI_LINK_DECL void
+dpi_uart_rx_edge(
+    int handle,
+    int data);
 
 DPI_LINK_DECL int
 dpi_wait(
