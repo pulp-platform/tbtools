@@ -46,6 +46,13 @@ dpi_config_get_str(
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
+dpi_cpi_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
 dpi_ctrl_bind(
     void* dpi_model,
     const char* name,
@@ -89,6 +96,11 @@ DPI_LINK_DECL DPI_DLLESPEC
 void*
 dpi_driver_set_config(
     void* config_handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+int
+dpi_exec_periodic_handler(
+    int id);
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
@@ -151,6 +163,20 @@ dpi_uart_edge(
     void* handle,
     int64_t timestamp,
     int64_t data);
+
+DPI_LINK_DECL void
+dpi_cpi_edge(
+    int handle,
+    int pclk,
+    int href,
+    int vsync,
+    int data);
+
+DPI_LINK_DECL int
+dpi_create_periodic_handler(
+    void* handle,
+    int id,
+    int64_t period);
 
 DPI_LINK_DECL int
 dpi_create_task(

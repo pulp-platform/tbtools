@@ -58,6 +58,16 @@ interface UART ();
 endinterface
 
 
+interface CPI ();
+
+  logic pclk;
+  logic href;
+  logic vsync;
+  logic data[7:0];
+
+endinterface
+
+
 
 interface CTRL ();
 
@@ -75,11 +85,15 @@ package dpi_models;
   virtual UART    uart_itf_array[];
   int             nb_uart_itf = 0;
 
+  virtual CPI     cpi_itf_array[];
+  int             nb_cpi_itf = 0;
+
   virtual CTRL    ctrl_itf_array[];
   int             nb_ctrl_itf = 0;
 
   virtual QSPI    qspim_itf_array[];
   int             nb_qspim_itf = 0;
+
 
   import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
@@ -87,17 +101,22 @@ package dpi_models;
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_jtag_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_uart_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context function chandle dpi_cpi_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_ctrl_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context task dpi_start_task(int id);
+  import "DPI-C"   context task dpi_exec_periodic_handler(int id);
+
 
   import "DPI-C"   context function chandle dpi_model_load(chandle comp_config, chandle handle);
   import "DPI-C"   context task dpi_model_start(chandle model);
 
   export "DPI-C"   task             dpi_create_task;
+  export "DPI-C"   task             dpi_create_periodic_handler;
   export "DPI-C"   function         dpi_print;
   export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
   export "DPI-C"   function         dpi_uart_rx_edge;
+  export "DPI-C"   function         dpi_cpi_edge;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   task             dpi_wait;
@@ -121,7 +140,7 @@ package dpi_models;
   endtask
 
   function void dpi_print(chandle handle, input string msg);
-    $display("[TB] %t - %s", $realtime, msg);
+    //$display("[TB] %t - %s", $realtime, msg);
   endfunction : dpi_print
 
   function void dpi_fatal(chandle handle, input string msg);
@@ -143,6 +162,24 @@ package dpi_models;
     automatic virtual UART itf = uart_itf_array[handle];
     itf.tx = data;
   endfunction : dpi_uart_rx_edge
+
+
+
+  function void dpi_cpi_edge(int handle, int pclk, int href, int vsync, int data);
+    automatic virtual CPI itf = cpi_itf_array[handle];
+    itf.pclk = pclk;
+    itf.href = href;
+    itf.vsync = vsync;
+    itf.data[0] = data[0];
+    itf.data[1] = data[1];
+    itf.data[2] = data[2];
+    itf.data[3] = data[3];
+    itf.data[4] = data[4];
+    itf.data[5] = data[5];
+    itf.data[6] = data[6];
+    itf.data[7] = data[7];
+  endfunction : dpi_cpi_edge
+
 
 
   function void dpi_ctrl_reset_edge(int handle, int reset);
@@ -167,6 +204,19 @@ package dpi_models;
       dpi_start_task(my_id);
     join_none
   endtask
+
+
+  task dpi_create_periodic_handler(chandle handle, int id, longint period);
+    $display("[TB] %t - Starting periodic handler %d", $realtime, id);
+    fork
+      automatic int my_id = id;
+      do begin
+        #(period * 1ps);
+        dpi_exec_periodic_handler(my_id);
+      end while(1);
+    join_none
+  endtask
+
 
   class periph_wrapper #(int NB_SPIS_CHANNELS = 0);
 
@@ -217,6 +267,17 @@ package dpi_models;
         dpi_uart_edge(dpi_handle, $realtime*1000, uart_itf.rx);
       end while(1);
       join_none
+    endtask
+
+
+    task cpi_bind(string name, virtual CPI cpi_itf);
+      chandle dpi_handle;
+
+      nb_cpi_itf = nb_cpi_itf + 1;
+      cpi_itf_array = new[nb_cpi_itf](cpi_itf_array);
+      cpi_itf_array[nb_cpi_itf - 1] = cpi_itf;
+
+      dpi_handle = dpi_cpi_bind(dpi_model, name, nb_cpi_itf - 1);
     endtask
 
 
