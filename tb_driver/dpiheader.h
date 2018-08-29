@@ -143,7 +143,8 @@ dpi_qspim_sck_edge(
     svLogic data_0,
     svLogic data_1,
     svLogic data_2,
-    svLogic data_3);
+    svLogic data_3,
+    int mask);
 
 DPI_LINK_DECL DPI_DLLESPEC
 int
@@ -206,6 +207,15 @@ DPI_LINK_DECL void
 dpi_print(
     void* handle,
     const char* msg);
+
+DPI_LINK_DECL void
+dpi_qspim_edge(
+    int handle,
+    int data_0,
+    int data_1,
+    int data_2,
+    int data_3,
+    int mask);
 
 DPI_LINK_DECL void
 dpi_qspim_set_data(

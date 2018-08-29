@@ -97,7 +97,7 @@ package dpi_models;
 
   import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
-  import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3);
+  import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3, input int mask);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_jtag_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_uart_bind(chandle dpi_model, string name, int handle);
@@ -116,6 +116,7 @@ package dpi_models;
   export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
   export "DPI-C"   function         dpi_uart_rx_edge;
+  export "DPI-C"   function         dpi_qspim_edge;
   export "DPI-C"   function         dpi_cpi_edge;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
@@ -162,6 +163,15 @@ package dpi_models;
     automatic virtual UART itf = uart_itf_array[handle];
     itf.tx = data;
   endfunction : dpi_uart_rx_edge
+
+
+  function void dpi_qspim_edge(int handle, int data_0, int data_1, int data_2, int data_3, int mask);
+    automatic virtual QSPI itf = qspim_itf_array[handle];
+    itf.data_0 = data_0;
+    itf.data_1 = data_1;
+    itf.data_2 = data_2;
+    itf.data_3 = data_3;
+  endfunction : dpi_qspim_edge
 
 
 
@@ -299,11 +309,6 @@ package dpi_models;
 
       chandle dpi_handle;
 
-      qspi_itf.data_0_out = 'bz;
-      qspi_itf.data_1_out = 'bz;
-      qspi_itf.data_2_out = 'bz;
-      qspi_itf.data_3_out = 'bz;
-
       nb_qspim_itf = nb_qspim_itf + 1;
       qspim_itf_array = new[nb_qspim_itf](qspim_itf_array);
       qspim_itf_array[nb_qspim_itf - 1] = qspi_itf;
@@ -324,7 +329,7 @@ package dpi_models;
           if (qspi_cs_itf.csn == 1'b0) begin
             dpi_qspim_sck_edge(dpi_handle, $realtime*1000, qspi_itf.sck,
               qspi_itf.data_0_in, qspi_itf.data_1_in, qspi_itf.data_2_in,
-              qspi_itf.data_2_in
+              qspi_itf.data_2_in, 0
             );
           end
 
