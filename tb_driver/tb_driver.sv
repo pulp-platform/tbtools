@@ -42,6 +42,10 @@ package tb_driver;
   } uart_info_t;
 
   typedef struct { 
+    virtual CPI itf;
+  } cpi_info_t;
+
+  typedef struct { 
     virtual CTRL itf;
   } ctrl_info_t;
 
@@ -52,6 +56,7 @@ package tb_driver;
     qspi_info_t qspi_infos[];
     jtag_info_t jtag_infos[];
     uart_info_t uart_infos[];
+    cpi_info_t cpi_infos[];
     ctrl_info_t ctrl_infos[];
 
     function void register_qspim_itf(int itf_id, virtual QSPI itf, virtual QSPI_CS cs[]);
@@ -69,6 +74,11 @@ package tb_driver;
     function void register_uart_itf(int itf_id, virtual UART itf);
       uart_infos = new[itf_id+1] (uart_infos);
       uart_infos[itf_id].itf = itf;
+    endfunction
+
+    function void register_cpi_itf(int itf_id, virtual CPI itf);
+      cpi_infos = new[itf_id+1] (cpi_infos);
+      cpi_infos[itf_id].itf = itf;
     endfunction
 
     function void register_ctrl_itf(int itf_id, virtual CTRL itf);
@@ -121,6 +131,9 @@ package tb_driver;
 
             end else if (itf_type == "UART") begin
                 i_comp.uart_bind(itf_name, uart_infos[itf_id].itf);
+
+            end else if (itf_type == "CPI") begin
+                i_comp.cpi_bind(itf_name, cpi_infos[itf_id].itf);
 
             end else if (itf_type == "CTRL") begin
                 i_comp.ctrl_bind(itf_name, ctrl_infos[itf_id].itf);
