@@ -220,10 +220,7 @@ dpi_qspim_edge(
 DPI_LINK_DECL void
 dpi_qspim_set_data(
     int handle,
-    int data_0,
-    int data_1,
-    int data_2,
-    int data_3);
+    int data);
 
 DPI_LINK_DECL int
 dpi_raise_event(

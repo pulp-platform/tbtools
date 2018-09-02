@@ -198,12 +198,17 @@ package dpi_models;
   endfunction : dpi_ctrl_reset_edge
 
 
-  function void dpi_qspim_set_data(int handle, int data_0, int data_1, int data_2, int data_3);
+  function void dpi_qspim_set_qpi_data(int handle, int data_0, int data_1, int data_2, int data_3);
     automatic virtual QSPI itf = qspim_itf_array[handle];
     itf.data_0_out = data_0;
     itf.data_1_out = data_1;
     itf.data_2_out = data_2;
     itf.data_3_out = data_3;
+  endfunction : dpi_qspim_set_qpi_data
+
+  function void dpi_qspim_set_data(int handle, int data);
+    automatic virtual QSPI itf = qspim_itf_array[handle];
+    itf.data_1_out = data;
   endfunction : dpi_qspim_set_data
 
 
@@ -320,6 +325,11 @@ package dpi_models;
       fork
       do begin
 
+        qspi_itf.data_0_out = 1'bZ;
+        qspi_itf.data_1_out = 1'bZ;
+        qspi_itf.data_2_out = 1'bZ;
+        qspi_itf.data_3_out = 1'bZ;
+
         @(negedge qspi_cs_itf.csn);
         dpi_qspim_cs_edge(dpi_handle, $realtime*1000, qspi_cs_itf.csn);
 
@@ -329,7 +339,7 @@ package dpi_models;
           if (qspi_cs_itf.csn == 1'b0) begin
             dpi_qspim_sck_edge(dpi_handle, $realtime*1000, qspi_itf.sck,
               qspi_itf.data_0_in, qspi_itf.data_1_in, qspi_itf.data_2_in,
-              qspi_itf.data_2_in, 0
+              qspi_itf.data_3_in, 0
             );
           end
 
