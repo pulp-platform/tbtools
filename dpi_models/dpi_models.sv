@@ -300,7 +300,7 @@ package dpi_models;
       chandle dpi_context;
 
       $display("[TB] %t - SETTING RESET TO 1", $realtime);
-      ctrl_itf.reset = 'b1;
+      ctrl_itf.reset = 'b0;
 
       nb_ctrl_itf = nb_ctrl_itf + 1;
       ctrl_itf_array = new[nb_ctrl_itf](ctrl_itf_array);
