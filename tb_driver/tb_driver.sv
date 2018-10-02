@@ -49,6 +49,10 @@ package tb_driver;
     virtual CTRL itf;
   } ctrl_info_t;
 
+  typedef struct { 
+    virtual GPIO itf;
+  } gpio_info_t;
+
   class tb_driver;
 
     chandle config_handle;
@@ -58,12 +62,18 @@ package tb_driver;
     uart_info_t uart_infos[];
     cpi_info_t cpi_infos[];
     ctrl_info_t ctrl_infos[];
+    gpio_info_t gpio_infos[];
 
     function void register_qspim_itf(int itf_id, virtual QSPI itf, virtual QSPI_CS cs[]);
       qspi_infos = new[itf_id+1] (qspi_infos);
       qspi_infos[itf_id].itf = itf;
       qspi_infos[itf_id].cs = cs;
       //qspi_infos[itf_id].cs = new[cs.size] (cs);
+    endfunction
+
+    function void register_gpio_itf(int itf_id, virtual GPIO itf);
+      gpio_infos = new[itf_id+1] (gpio_infos);
+      gpio_infos[itf_id].itf = itf;
     endfunction
 
     function void register_jtag_itf(int itf_id, virtual JTAG itf);
@@ -137,6 +147,9 @@ package tb_driver;
 
             end else if (itf_type == "CTRL") begin
                 i_comp.ctrl_bind(itf_name, ctrl_infos[itf_id].itf);
+
+            end else if (itf_type == "GPIO") begin
+                i_comp.gpio_bind(itf_name, gpio_infos[itf_id].itf);
 
             end
 

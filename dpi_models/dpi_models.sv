@@ -38,6 +38,14 @@ interface QSPI ();
 endinterface
 
 
+interface GPIO ();
+
+  logic data_in;
+  logic data_out;
+
+endinterface
+
+
 
 interface JTAG ();
 
@@ -79,6 +87,8 @@ endinterface
 
 package dpi_models;
 
+  event task_event_wait;
+
   virtual JTAG    jtag_itf_array[];
   int             nb_jtag_itf = 0;
 
@@ -94,11 +104,16 @@ package dpi_models;
   virtual QSPI    qspim_itf_array[];
   int             nb_qspim_itf = 0;
 
+  virtual GPIO    gpio_itf_array[];
+  int             nb_gpio_itf = 0;
+
 
   import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
-  import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
-  import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3, input int mask);
+  import "DPI-C"   context function dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
+  import "DPI-C"   context function dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3, input int mask);
+  import "DPI-C"   context function void dpi_gpio_edge(chandle handle, longint timestamp, input logic data);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context function chandle dpi_gpio_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_jtag_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_uart_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_cpi_bind(chandle dpi_model, string name, int handle);
@@ -112,6 +127,7 @@ package dpi_models;
 
   export "DPI-C"   task             dpi_create_task;
   export "DPI-C"   task             dpi_create_periodic_handler;
+  export "DPI-C"   function         dpi_time;
   export "DPI-C"   function         dpi_print;
   export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
@@ -120,10 +136,18 @@ package dpi_models;
   export "DPI-C"   function         dpi_cpi_edge;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
+  export "DPI-C"   function         dpi_gpio_set_data;
   export "DPI-C"   task             dpi_wait;
   export "DPI-C"   task             dpi_wait_ps;
   export "DPI-C"   task             dpi_wait_event;
   export "DPI-C"   task             dpi_raise_event;
+  export "DPI-C"   task             dpi_wait_task_event;
+  export "DPI-C"   task             dpi_wait_task_event_timeout;
+  export "DPI-C"   function         dpi_raise_task_event;
+
+  function longint dpi_time(chandle handle);
+    return $realtime * 1000;
+  endfunction
 
   task dpi_wait(chandle handle, input longint t);
     #(t * 1ns);
@@ -138,7 +162,31 @@ package dpi_models;
   endtask
 
   task dpi_raise_event(chandle handle);
+    $display("[TB] %t - Raise event", $realtime);
   endtask
+
+  task dpi_wait_task_event(chandle handle);
+    @task_event_wait;
+    //wait(task_event_wait.triggered);
+  endtask
+
+  task dpi_wait_task_event_timeout(chandle handle, longint timeout);
+    fork : wait_or_timeout
+      begin
+        #(timeout * 1ps) ;
+        disable wait_or_timeout;
+      end
+      begin
+        @task_event_wait;
+        disable wait_or_timeout;
+      end
+    join
+  endtask
+
+  function void dpi_raise_task_event(chandle handle);
+    $display("[TB] %t - Raise event", $realtime);
+    ->task_event_wait;
+  endfunction
 
   function void dpi_print(chandle handle, input string msg);
     //$display("[TB] %t - %s", $realtime, msg);
@@ -210,6 +258,13 @@ package dpi_models;
     automatic virtual QSPI itf = qspim_itf_array[handle];
     itf.data_1_out = data;
   endfunction : dpi_qspim_set_data
+
+
+
+  function void dpi_gpio_set_data(int handle, int data);
+    automatic virtual GPIO itf = gpio_itf_array[handle];
+    itf.data_out = data;
+  endfunction : dpi_gpio_set_data
 
 
   task dpi_create_task(chandle handle, int id);
@@ -350,6 +405,24 @@ package dpi_models;
       end while(1);
       join_none
     endtask
+
+
+
+    task gpio_bind(string name, virtual GPIO gpio_itf);
+
+      chandle dpi_handle;
+
+      nb_gpio_itf = nb_gpio_itf + 1;
+      gpio_itf_array = new[nb_gpio_itf](gpio_itf_array);
+      gpio_itf_array[nb_gpio_itf - 1] = gpio_itf;
+
+      dpi_handle = dpi_gpio_bind(dpi_model, name, nb_gpio_itf - 1);
+
+      gpio_itf.data_out = 1'bZ;
+    endtask
+
+
+
 
     task toggle () ;
       do begin
