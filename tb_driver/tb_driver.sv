@@ -46,6 +46,10 @@ package tb_driver;
   } cpi_info_t;
 
   typedef struct { 
+    virtual I2S itf;
+  } i2s_info_t;
+
+  typedef struct { 
     virtual CTRL itf;
   } ctrl_info_t;
 
@@ -61,6 +65,7 @@ package tb_driver;
     jtag_info_t jtag_infos[];
     uart_info_t uart_infos[];
     cpi_info_t cpi_infos[];
+    i2s_info_t i2s_infos[];
     ctrl_info_t ctrl_infos[];
     gpio_info_t gpio_infos[];
 
@@ -91,6 +96,11 @@ package tb_driver;
       cpi_infos[itf_id].itf = itf;
     endfunction
 
+    function void register_i2s_itf(int itf_id, virtual I2S itf);
+      i2s_infos = new[itf_id+1] (i2s_infos);
+      i2s_infos[itf_id].itf = itf;
+    endfunction
+
     function void register_ctrl_itf(int itf_id, virtual CTRL itf);
       ctrl_infos = new[itf_id+1] (ctrl_infos);
       ctrl_infos[itf_id].itf = itf;
@@ -118,10 +128,11 @@ package tb_driver;
           dpi_models::periph_wrapper i_comp = new();
           int err;
 
-          $display("[TB] %t - Instantiating DPI component", $realtime, i);
+          $display("[TB] %t - Instantiating DPI component", $realtime);
 
           err = i_comp.load_model(comp_config);
           if (err != 0) $fatal(1, "[TB] %t - Failed to instantiate periph model", $realtime);
+
 
           i_comp.start_model();
 
@@ -144,6 +155,9 @@ package tb_driver;
 
             end else if (itf_type == "CPI") begin
                 i_comp.cpi_bind(itf_name, cpi_infos[itf_id].itf);
+
+            end else if (itf_type == "I2S") begin
+                i_comp.i2s_bind(itf_name, i2s_infos[itf_id].itf);
 
             end else if (itf_type == "CTRL") begin
                 i_comp.ctrl_bind(itf_name, ctrl_infos[itf_id].itf);

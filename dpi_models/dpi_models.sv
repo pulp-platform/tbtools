@@ -76,6 +76,17 @@ interface CPI ();
 endinterface
 
 
+interface I2S ();
+
+  logic sck_in;
+  logic sck_out;
+  logic ws_in;
+  logic ws_out;
+  logic sdi;
+
+endinterface
+
+
 
 interface CTRL ();
 
@@ -98,6 +109,9 @@ package dpi_models;
   virtual CPI     cpi_itf_array[];
   int             nb_cpi_itf = 0;
 
+  virtual I2S     i2s_itf_array[];
+  int             nb_i2s_itf = 0;
+
   virtual CTRL    ctrl_itf_array[];
   int             nb_ctrl_itf = 0;
 
@@ -111,12 +125,14 @@ package dpi_models;
   import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
   import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3, input int mask);
+  import "DPI-C"   context function void dpi_i2s_edge(chandle handle, longint timestamp, input logic sck, input logic sdi);
   import "DPI-C"   context function void dpi_gpio_edge(chandle handle, longint timestamp, input logic data);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_gpio_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_jtag_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_uart_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_cpi_bind(chandle dpi_model, string name, int handle);
+  import "DPI-C"   context function chandle dpi_i2s_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_ctrl_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context task dpi_start_task(int id);
   import "DPI-C"   context task dpi_exec_periodic_handler(int id);
@@ -134,6 +150,7 @@ package dpi_models;
   export "DPI-C"   function         dpi_uart_rx_edge;
   export "DPI-C"   function         dpi_qspim_edge;
   export "DPI-C"   function         dpi_cpi_edge;
+  export "DPI-C"   function         dpi_i2s_set_data;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   function         dpi_gpio_set_data;
@@ -193,7 +210,7 @@ package dpi_models;
   endfunction : dpi_print
 
   function void dpi_fatal(chandle handle, input string msg);
-    $display("[TB] %t - %s", $realtime, msg);
+    $fatal("[TB] %t - %s", $realtime, msg);
   endfunction : dpi_fatal
 
 
@@ -237,6 +254,14 @@ package dpi_models;
     itf.data[6] = data[6];
     itf.data[7] = data[7];
   endfunction : dpi_cpi_edge
+
+
+
+
+  function void dpi_i2s_set_data(int handle, int sdi);
+    automatic virtual I2S itf = i2s_itf_array[handle];
+    itf.sdi = sdi;
+  endfunction : dpi_i2s_set_data
 
 
 
@@ -349,6 +374,29 @@ package dpi_models;
 
       dpi_handle = dpi_cpi_bind(dpi_model, name, nb_cpi_itf - 1);
     endtask
+
+
+
+    task i2s_bind(string name, virtual I2S i2s_itf);
+      chandle dpi_handle;
+
+      nb_i2s_itf = nb_i2s_itf + 1;
+      i2s_itf_array = new[nb_i2s_itf](i2s_itf_array);
+      i2s_itf_array[nb_i2s_itf - 1] = i2s_itf;
+
+      dpi_handle = dpi_i2s_bind(dpi_model, name, nb_i2s_itf - 1);
+
+      i2s_itf.sck_out = 1'bZ;
+      i2s_itf.ws_out = 1'bZ;
+
+      fork
+      do begin
+        @(edge i2s_itf.sck_in);
+        dpi_i2s_edge(dpi_handle, $realtime*1000, i2s_itf.sck_in, i2s_itf.ws_in);
+      end while(1);
+      join_none
+    endtask
+
 
 
     task ctrl_bind(string name, virtual CTRL ctrl_itf);
