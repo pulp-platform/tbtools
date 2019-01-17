@@ -97,6 +97,7 @@ endinterface
 
 
 package dpi_models;
+  `timescale 1ns / 1ps
 
   event task_event_wait;
 
@@ -358,7 +359,7 @@ package dpi_models;
 
       fork
       do begin
-        @(edge uart_itf.rx);
+        @(negedge uart_itf.rx or posedge uart_itf.rx);
         dpi_uart_edge(dpi_handle, $realtime*1000, uart_itf.rx);
       end while(1);
       join_none
@@ -391,7 +392,7 @@ package dpi_models;
 
       fork
       do begin
-        @(edge i2s_itf.sck_in);
+        @(posedge i2s_itf.sck_in or negedge i2s_itf.sck_in);
         dpi_i2s_edge(dpi_handle, $realtime*1000, i2s_itf.sck_in, i2s_itf.ws_in);
       end while(1);
       join_none
@@ -437,7 +438,7 @@ package dpi_models;
         dpi_qspim_cs_edge(dpi_handle, $realtime*1000, qspi_cs_itf.csn);
 
         do begin
-          @(edge qspi_itf.sck or posedge qspi_cs_itf.csn);
+          @(posedge qspi_itf.sck or negedge qspi_itf.sck or posedge qspi_cs_itf.csn);
 
           if (qspi_cs_itf.csn == 1'b0) begin
             dpi_qspim_sck_edge(dpi_handle, $realtime*1000, qspi_itf.sck,
