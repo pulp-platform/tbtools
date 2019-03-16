@@ -151,7 +151,6 @@ package dpi_models;
   export "DPI-C"   function         dpi_uart_rx_edge;
   export "DPI-C"   function         dpi_qspim_edge;
   export "DPI-C"   function         dpi_cpi_edge;
-  export "DPI-C"   function         dpi_i2s_set_data;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   function         dpi_gpio_set_data;
@@ -162,6 +161,7 @@ package dpi_models;
   export "DPI-C"   task             dpi_wait_task_event;
   export "DPI-C"   task             dpi_wait_task_event_timeout;
   export "DPI-C"   function         dpi_raise_task_event;
+  export "DPI-C"   function         dpi_i2s_rx_edge;
 
   function longint dpi_time(chandle handle);
     return $realtime * 1000;
@@ -231,6 +231,14 @@ package dpi_models;
   endfunction : dpi_uart_rx_edge
 
 
+  function void dpi_i2s_rx_edge(int handle, int sck, int ws, int data);
+    automatic virtual I2S itf = i2s_itf_array[handle];
+    itf.sdi = data;
+    itf.sck_in = sck;
+    itf.ws_in = ws;
+  endfunction : dpi_i2s_rx_edge
+
+
   function void dpi_qspim_edge(int handle, int data_0, int data_1, int data_2, int data_3, int mask);
     automatic virtual QSPI itf = qspim_itf_array[handle];
     itf.data_0 = data_0;
@@ -258,11 +266,6 @@ package dpi_models;
 
 
 
-
-  function void dpi_i2s_set_data(int handle, int sdi);
-    automatic virtual I2S itf = i2s_itf_array[handle];
-    itf.sdi = sdi;
-  endfunction : dpi_i2s_set_data
 
 
 
@@ -393,7 +396,7 @@ package dpi_models;
       fork
       do begin
         @(posedge i2s_itf.sck_in or negedge i2s_itf.sck_in);
-        dpi_i2s_edge(dpi_handle, $realtime*1000, i2s_itf.sck_in, i2s_itf.ws_in);
+        dpi_i2s_edge(dpi_handle, $realtime*1000, i2s_itf.sck_in, i2s_itf.ws_in, 1'b0);
       end while(1);
       join_none
     endtask
