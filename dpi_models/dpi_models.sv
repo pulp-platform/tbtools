@@ -126,7 +126,7 @@ package dpi_models;
   import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
   import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3, input int mask);
-  import "DPI-C"   context function void dpi_i2s_edge(chandle handle, longint timestamp, input logic sck, input logic sdi);
+  import "DPI-C"   context function void dpi_i2s_edge(chandle handle, longint timestamp, input logic sck, input logic ws, input logic sdi);
   import "DPI-C"   context function void dpi_gpio_edge(chandle handle, longint timestamp, input logic data);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_gpio_bind(chandle dpi_model, string name, int handle);
