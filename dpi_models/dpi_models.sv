@@ -392,6 +392,7 @@ package dpi_models;
 
       i2s_itf.sck_out = 1'bZ;
       i2s_itf.ws_out = 1'bZ;
+      i2s_itf.sdi = 1'b0;
 
       fork
       do begin
