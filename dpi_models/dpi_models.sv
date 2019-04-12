@@ -91,6 +91,7 @@ endinterface
 interface CTRL ();
 
   logic reset;
+  logic configs[32:0];
 
 endinterface
 
@@ -152,6 +153,7 @@ package dpi_models;
   export "DPI-C"   function         dpi_qspim_edge;
   export "DPI-C"   function         dpi_cpi_edge;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
+  export "DPI-C"   function         dpi_ctrl_config_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   function         dpi_gpio_set_data;
   export "DPI-C"   task             dpi_wait;
@@ -273,6 +275,12 @@ package dpi_models;
     automatic virtual CTRL itf = ctrl_itf_array[handle];
     itf.reset = reset;
   endfunction : dpi_ctrl_reset_edge
+
+
+  function void dpi_ctrl_config_edge(int handle, int value);
+    automatic virtual CTRL itf = ctrl_itf_array[handle];
+    itf.configs[0] = value;
+  endfunction : dpi_ctrl_config_edge
 
 
   function void dpi_qspim_set_qpi_data(int handle, int data_0, int data_1, int data_2, int data_3);
@@ -408,6 +416,7 @@ package dpi_models;
 
       $display("[TB] %t - SETTING RESET TO 1", $realtime);
       ctrl_itf.reset = 'b1;
+      ctrl_itf.configs[0] = 'b0;
 
       nb_ctrl_itf = nb_ctrl_itf + 1;
       ctrl_itf_array = new[nb_ctrl_itf](ctrl_itf_array);
