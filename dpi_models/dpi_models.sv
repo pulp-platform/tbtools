@@ -147,6 +147,8 @@ package dpi_models;
   export "DPI-C"   task             dpi_create_periodic_handler;
   export "DPI-C"   function         dpi_time;
   export "DPI-C"   function         dpi_print;
+  export "DPI-C"   function         dpi_trace_new;
+  export "DPI-C"   function         dpi_trace_msg;
   export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
   export "DPI-C"   function         dpi_uart_rx_edge;
@@ -207,6 +209,14 @@ package dpi_models;
     $display("[TB] %t - Raise event", $realtime);
     ->task_event_wait;
   endfunction
+
+  function chandle dpi_trace_new(chandle handle, input string name);
+    //$display("[TB] %t - %s", $realtime, msg);
+  endfunction : dpi_trace_new
+
+  function void dpi_trace_msg(chandle handle, int level, input string msg);
+    //$display("[TB] %t - %s", $realtime, msg);
+  endfunction : dpi_trace_msg
 
   function void dpi_print(chandle handle, input string msg);
     //$display("[TB] %t - %s", $realtime, msg);
