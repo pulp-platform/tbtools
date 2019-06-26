@@ -212,6 +212,7 @@ package dpi_models;
 
   function chandle dpi_trace_new(chandle handle, input string name);
     //$display("[TB] %t - %s", $realtime, msg);
+    return null;
   endfunction : dpi_trace_new
 
   function void dpi_trace_msg(chandle handle, int level, input string msg);
