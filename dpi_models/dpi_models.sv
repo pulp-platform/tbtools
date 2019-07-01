@@ -91,12 +91,14 @@ endinterface
 interface CTRL ();
 
   logic reset;
+  logic configs[32:0];
 
 endinterface
 
 
 
 package dpi_models;
+  `timescale 1ns / 1ps
 
   event task_event_wait;
 
@@ -125,7 +127,7 @@ package dpi_models;
   import "DPI-C"   context function void dpi_uart_edge(chandle handle, longint timestamp, longint data);
   import "DPI-C"   context function void dpi_qspim_cs_edge(chandle handle, longint timestamp, input logic csn);
   import "DPI-C"   context function void dpi_qspim_sck_edge(chandle handle, longint timestamp, input logic sck, input logic data_0, input logic data_1, input logic data_2, input logic data_3, input int mask);
-  import "DPI-C"   context function void dpi_i2s_edge(chandle handle, longint timestamp, input logic sck, input logic sdi);
+  import "DPI-C"   context function void dpi_i2s_edge(chandle handle, longint timestamp, input logic sck, input logic ws, input logic sdi);
   import "DPI-C"   context function void dpi_gpio_edge(chandle handle, longint timestamp, input logic data);
   import "DPI-C"   context function chandle dpi_qspim_bind(chandle dpi_model, string name, int handle);
   import "DPI-C"   context function chandle dpi_gpio_bind(chandle dpi_model, string name, int handle);
@@ -145,13 +147,15 @@ package dpi_models;
   export "DPI-C"   task             dpi_create_periodic_handler;
   export "DPI-C"   function         dpi_time;
   export "DPI-C"   function         dpi_print;
+  export "DPI-C"   function         dpi_trace_new;
+  export "DPI-C"   function         dpi_trace_msg;
   export "DPI-C"   function         dpi_fatal;
   export "DPI-C"   function         dpi_jtag_tck_edge;
   export "DPI-C"   function         dpi_uart_rx_edge;
   export "DPI-C"   function         dpi_qspim_edge;
   export "DPI-C"   function         dpi_cpi_edge;
-  export "DPI-C"   function         dpi_i2s_set_data;
   export "DPI-C"   function         dpi_ctrl_reset_edge;
+  export "DPI-C"   function         dpi_ctrl_config_edge;
   export "DPI-C"   function         dpi_qspim_set_data;
   export "DPI-C"   function         dpi_gpio_set_data;
   export "DPI-C"   task             dpi_wait;
@@ -161,6 +165,7 @@ package dpi_models;
   export "DPI-C"   task             dpi_wait_task_event;
   export "DPI-C"   task             dpi_wait_task_event_timeout;
   export "DPI-C"   function         dpi_raise_task_event;
+  export "DPI-C"   function         dpi_i2s_rx_edge;
 
   function longint dpi_time(chandle handle);
     return $realtime * 1000;
@@ -205,6 +210,15 @@ package dpi_models;
     ->task_event_wait;
   endfunction
 
+  function chandle dpi_trace_new(chandle handle, input string name);
+    //$display("[TB] %t - %s", $realtime, msg);
+    return null;
+  endfunction : dpi_trace_new
+
+  function void dpi_trace_msg(chandle handle, int level, input string msg);
+    //$display("[TB] %t - %s", $realtime, msg);
+  endfunction : dpi_trace_msg
+
   function void dpi_print(chandle handle, input string msg);
     //$display("[TB] %t - %s", $realtime, msg);
   endfunction : dpi_print
@@ -228,6 +242,14 @@ package dpi_models;
     automatic virtual UART itf = uart_itf_array[handle];
     itf.tx = data;
   endfunction : dpi_uart_rx_edge
+
+
+  function void dpi_i2s_rx_edge(int handle, int sck, int ws, int data);
+    automatic virtual I2S itf = i2s_itf_array[handle];
+    itf.sdi = data;
+    itf.sck_in = sck;
+    itf.ws_in = ws;
+  endfunction : dpi_i2s_rx_edge
 
 
   function void dpi_qspim_edge(int handle, int data_0, int data_1, int data_2, int data_3, int mask);
@@ -258,17 +280,18 @@ package dpi_models;
 
 
 
-  function void dpi_i2s_set_data(int handle, int sdi);
-    automatic virtual I2S itf = i2s_itf_array[handle];
-    itf.sdi = sdi;
-  endfunction : dpi_i2s_set_data
-
 
 
   function void dpi_ctrl_reset_edge(int handle, int reset);
     automatic virtual CTRL itf = ctrl_itf_array[handle];
     itf.reset = reset;
   endfunction : dpi_ctrl_reset_edge
+
+
+  function void dpi_ctrl_config_edge(int handle, int value);
+    automatic virtual CTRL itf = ctrl_itf_array[handle];
+    itf.configs[0] = value;
+  endfunction : dpi_ctrl_config_edge
 
 
   function void dpi_qspim_set_qpi_data(int handle, int data_0, int data_1, int data_2, int data_3);
@@ -358,7 +381,7 @@ package dpi_models;
 
       fork
       do begin
-        @(edge uart_itf.rx);
+        @(negedge uart_itf.rx or posedge uart_itf.rx);
         dpi_uart_edge(dpi_handle, $realtime*1000, uart_itf.rx);
       end while(1);
       join_none
@@ -388,11 +411,12 @@ package dpi_models;
 
       i2s_itf.sck_out = 1'bZ;
       i2s_itf.ws_out = 1'bZ;
+      i2s_itf.sdi = 1'b0;
 
       fork
       do begin
-        @(edge i2s_itf.sck_in);
-        dpi_i2s_edge(dpi_handle, $realtime*1000, i2s_itf.sck_in, i2s_itf.ws_in);
+        @(posedge i2s_itf.sck_in or negedge i2s_itf.sck_in);
+        dpi_i2s_edge(dpi_handle, $realtime*1000, i2s_itf.sck_in, i2s_itf.ws_in, 1'b0);
       end while(1);
       join_none
     endtask
@@ -404,6 +428,7 @@ package dpi_models;
 
       $display("[TB] %t - SETTING RESET TO 1", $realtime);
       ctrl_itf.reset = 'b0;
+      ctrl_itf.configs[0] = 'b0;
 
       nb_ctrl_itf = nb_ctrl_itf + 1;
       ctrl_itf_array = new[nb_ctrl_itf](ctrl_itf_array);
@@ -437,7 +462,7 @@ package dpi_models;
         dpi_qspim_cs_edge(dpi_handle, $realtime*1000, qspi_cs_itf.csn);
 
         do begin
-          @(edge qspi_itf.sck or posedge qspi_cs_itf.csn);
+          @(posedge qspi_itf.sck or negedge qspi_itf.sck or posedge qspi_cs_itf.csn);
 
           if (qspi_cs_itf.csn == 1'b0) begin
             dpi_qspim_sck_edge(dpi_handle, $realtime*1000, qspi_itf.sck,
