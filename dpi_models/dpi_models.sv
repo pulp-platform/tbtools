@@ -211,16 +211,22 @@ package dpi_models;
   endfunction
 
   function chandle dpi_trace_new(chandle handle, input string name);
-    //$display("[TB] %t - %s", $realtime, msg);
+`ifdef DPI_VERBOSE
+    $display("[TB] %t - %s", $realtime, name);
+`endif
     return null;
   endfunction : dpi_trace_new
 
   function void dpi_trace_msg(chandle handle, int level, input string msg);
-    //$display("[TB] %t - %s", $realtime, msg);
+`ifdef DPI_VERBOSE
+    $display("[TB] %t - %s", $realtime, msg);
+`endif
   endfunction : dpi_trace_msg
 
   function void dpi_print(chandle handle, input string msg);
-    //$display("[TB] %t - %s", $realtime, msg);
+`ifdef DPI_VERBOSE
+    $display("[TB] %t - %s", $realtime, msg);
+`endif
   endfunction : dpi_print
 
   function void dpi_fatal(chandle handle, input string msg);
