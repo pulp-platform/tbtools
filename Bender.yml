@@ -1,0 +1,12 @@
+package:
+  name: tbtools
+  authors: 
+    - "Germain Haugou <haugoug@iis.ee.ethz.ch>"
+    - "Florent Rotenberg <florent.rotenberg@greenwaves-technologies.com>"
+    - "Robert Balas <balasr@iis.ee.ethz.ch>"
+
+sources:
+  - target: not(synthesis)
+    files:
+      - dpi_models/dpi_models.sv
+      - tb_driver/tb_driver.sv
