@@ -1,4 +1,7 @@
 tbtools:
+  targets: [
+    rtl,
+  ]
   flags: [
     'skip_synthesis'
   ]

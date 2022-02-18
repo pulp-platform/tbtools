@@ -260,10 +260,10 @@ package dpi_models;
 
   function void dpi_qspim_edge(int handle, int data_0, int data_1, int data_2, int data_3, int mask);
     automatic virtual QSPI itf = qspim_itf_array[handle];
-    itf.data_0 = data_0;
-    itf.data_1 = data_1;
-    itf.data_2 = data_2;
-    itf.data_3 = data_3;
+    itf.data_0_out = data_0;
+    itf.data_1_out = data_1;
+    itf.data_2_out = data_2;
+    itf.data_3_out = data_3;
   endfunction : dpi_qspim_edge
 
 
